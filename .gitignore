@@ -9,3 +9,7 @@ venv
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
+
+
+
+Task4/.terraform/

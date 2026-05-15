@@ -21,19 +21,22 @@
             ContainerDb(fintech_dwh, "Хранилище данных финтеха", "Greenplum / ClickHouse", "Содержит агрегированные финансовые данные, данные о кредитах, счетах. Медицинские данные исключены.")
             Container(fintech_etl, "Сервисы поставки данных", "Apache Airflow / Spark", "Извлекает финансовые данные из операционных систем Финтеха, преобразует и загружает в DWH домена.")
             Container(fintech_product, "Продукты данных Финтеха", "REST API на Go / gRPC", "Предоставляет  датасеты Финтеха. Публикует API в каталог.")
+            Container(integration_fintech, "Интеграция", "Spring/Java  Camel", "Обеспечивает событийную интеграцию между доменами.")
         }
 
         Boundary(domain_ai, "Домен: ИИ-сервисы") {
             ContainerDb(ai_dwh, "Аналитическая БД ИИ", "PostgreSQL / S3 Data Lake", "Хранит обезличенные результаты анализов ИИ, логи работы моделей, метрики точности. Никаких исходных медицинских карт.")
             Container(ai_etl, "Сервисы сбора данных", "Python / MLflow", "Поставляет данные из контура работы моделей в аналитическую БД домена.")
             Container(ai_product, "Продукты данных ИИ", "REST API на Python", "Предоставляет датасеты ИИ. Публикует API в каталог.")
+            Container(integration_ai, "Интеграция", "Spring/Java  Camel", "Обеспечивает событийную интеграцию между доменами.")
         }
 
         Boundary(domain_clinic, "Домен: Клиники", "Ключевое ядро, обеспечивающее целостность мед. данных") {
             ContainerDb(ops_db, "Операционная БД клиник", "Aurora PostgreSQL", "Новая система-преемник легаси DWH для операционных процессов. Хранит мед. карты, истории, снимки (через ссылки на S3). Строгий контроль доступа.")
-            Container(esb, "Брокер сообщений", "Apache Kafka")
-            Container(esb_service, "Интеграционный сервис", "Spring/Java", "Обеспечивает событийную интеграцию между ИИ-модулями, рабочим местом врача и аналитикой в режиме real-time.")
+            Container(clinic_service, "Сервисы клиники", "Spring/Java", "Предоставляет  датасеты клиник.")
             Container(clinical_product, "Продукты данных клиник", "REST API на Java", "Предоставляет обезличенные и агрегированные датасеты: «Загрузка клиник», «Эффективность лечения», «Отчеты для Минздрава». Публикует API в каталоге.")
+            Container(integration_clinic, "Интеграция", "Spring/Java  Camel", "Обеспечивает событийную интеграцию между доменами.")
+
         }
     }
 
@@ -41,6 +44,8 @@
         Container(data_catalog, "Data Catalog", "Apache Atlas / Collibra", "Централизованный реестр всех продуктов данных. Пользователь портала ищет нужный датасет здесь и получает ссылку на API конкретного домена.")
         Container(governance, "Data Governance", "Сервис правил", "Хранит и применяет глобальные политики качества данных, управления мастер-данными (MDM) и прав доступа.")
     }
+
+    Container(kafka, "Брокер сообщений", "Apache Kafka")
 
     Rel(operator, web_app, "Создает отчет, строит дашборд", "HTTPS")
     Rel(web_app, api_gateway, "Запрос данных от имени пользователя", "REST")
@@ -55,7 +60,13 @@
     Rel(ai_product, ai_dwh, "Чтение витрин", "JDBC")
 
     Rel(clinical_product,ops_db, "Чтение подготовленных витрин", "JDBC")
-    Rel(esb, esb_service, "Передача данных в реальном времени", "Kafka Streams")
-    Rel(esb_service, ops_db, "Передача данных в реальном времени", "JDBC")
+    Rel(clinic_service, ops_db, "Передача данных в реальном времени", "JDBC")
     Rel(ext_sys, api_gateway, "Безопасный обмен данными", "HTTPS/REST")
+
+    Rel(fintech_etl, kafka,  "Передача данных в реальном времени", "Kafka Streams")
+    Rel( clinic_service, kafka, "Передача данных в реальном времени", "Kafka Streams")
+    Rel(ai_etl, kafka,  "Передача данных в реальном времени", "Kafka Streams")
+    Rel( kafka, integration_clinic,  "Передача данных в реальном времени", "Kafka Streams")
+    Rel( kafka, integration_ai,  "Передача данных в реальном времени", "Kafka Streams")
+    Rel( kafka, integration_fintech,  "Передача данных в реальном времени", "Kafka Streams")
 @enduml

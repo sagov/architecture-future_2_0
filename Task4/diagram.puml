@@ -1,0 +1,40 @@
+@startuml
+!include <C4/C4_Container>
+
+System_Boundary("manual", "Вручную (единоразово)") {
+    Container(dns, "DNS", "future2.ru")
+    Container(sso, "SSO", "Azure AD / Keycloak")
+}
+
+System_Boundary("terraform", "Terraform") {
+
+    System_Boundary("network", "Сеть") {
+        Container(vpc, "VPC", "10.0.0.0/8")
+        Container(subnets, "Public + Private Subnets", "4 подсети в 2 зонах")
+        Container(nat, "NAT Gateway")
+        Container(sg, "Security Groups")
+    }
+
+    System_Boundary("compute", "Вычисления") {
+        Container(k8s, "Kubernetes", "3 ноды × 2 зоны")
+        Container(bastion, "Bastion Host")
+    }
+
+    System_Boundary("storage", "Хранение") {
+        ContainerDb(aurora, "Aurora PostgreSQL", "Клиники, Multi-AZ")
+        ContainerDb(greenplum, "Greenplum", "Финтех")
+        ContainerDb(clickhouse, "ClickHouse", "Аналитика, Multi-AZ")
+        Container(s3, "S3", "Data Lake + Backups")
+    }
+
+    System_Boundary("services", "Сервисы") {
+        Container(kafka, "Managed Kafka", "Событийная шина")
+        Container(gateway, "API Gateway", "Kong")
+        Container(vault, "Vault", "Секреты")
+    }
+
+}
+
+
+
+@enduml
